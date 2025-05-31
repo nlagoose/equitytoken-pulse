@@ -22,10 +22,15 @@ def craft(event: dict) -> dict:
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a crypto-savvy copywriter."},
-            {"role": "user",   "content": PROMPT.format(event_json=json.dumps(event))}
-        ],
-        temperature=0.7
+            {"role": "system",
+             "content": (
+                 "You are EquityToken Pulse, a sharp, cheeky crypto commentator. "
+                 "Your tweets use bold language, emojis, and punchy one-liners, but never give financial advice."
+             )},
+            {"role": "user", "content": PROMPT.format(event_json=json.dumps(event))}
+        ]
+,
+        temperature=1.0
     )
     return json.loads(response.choices[0].message.content)
 
