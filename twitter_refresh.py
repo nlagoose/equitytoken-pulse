@@ -1,12 +1,14 @@
+# twitter_refresh.py
 import os, requests, time
 
 def fresh_access_token() -> str:
     """
-    Return a valid user access token.
-    Refreshes automatically if we’re > 90 minutes old (tokens last 120 min).
+    Return a valid user access token for the Twitter/X API.
+    If the cached token is older than 90 minutes, refresh it via the
+    OAuth 2 refresh-token flow and update the environment variables in-memory.
     """
-    issued = int(os.environ.get("TW_AT_ISSUED", "0"))
-    if time.time() - issued < 5400:       # < 90 min old → still fresh
+    issued_at = int(os.environ.get("TW_AT_ISSUED", "0"))
+    if time.time() - issued_at < 5400:          # < 90 min old → still good
         return os.environ["TW_ACCESS_TOKEN"]
 
     r = requests.post(
@@ -17,19 +19,16 @@ def fresh_access_token() -> str:
             "refresh_token": os.environ["TW_REFRESH_TOKEN"],
         },
         timeout=30,
-    )r = requests.post(...)
-
-    # 🔎 print Twitter's own error JSON / text
-    if r.status_code != 200:
-        print("TWITTER REFRESH ERROR →", r.status_code, r.text)
-
-    r.raise_for_status()
+    )
+    # DEBUG printing for future: uncomment if you need to see errors
+    # if r.status_code != 200:
+    #     print("TWITTER REFRESH ERROR →", r.status_code, r.text)
 
     r.raise_for_status()
-    j = r.json()
+    data = r.json()
 
-    # update env (memory) so the rest of this run uses the new token
-    os.environ["TW_ACCESS_TOKEN"] = j["access_token"]
-    os.environ["TW_REFRESH_TOKEN"] = j["refresh_token"]
-    os.environ["TW_AT_ISSUED"]    = str(int(time.time()))
-    return j["access_token"]
+    # store new tokens in this process; Actions env lasts only for this run
+    os.environ["TW_ACCESS_TOKEN"]  = data["access_token"]
+    os.environ["TW_REFRESH_TOKEN"] = data["refresh_token"]
+    os.environ["TW_AT_ISSUED"]     = str(int(time.time()))
+    return data["access_token"]
