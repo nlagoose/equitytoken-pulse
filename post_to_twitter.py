@@ -1,22 +1,20 @@
-# post_to_twitter.py
-import os, requests, json
+import requests, json
+from twitter_refresh import fresh_access_token   # ← add this
 
 def tweet(text: str) -> dict:
-    """Post plain text using the user-access token obtained via OAuth 2 PKCE."""
-    token = os.environ["TW_ACCESS_TOKEN"]          # 2-hour token you just saved
-    url   = "https://api.twitter.com/2/tweets"
-    resp  = requests.post(
-        url,
+    token = fresh_access_token()                 # always fresh
+    resp = requests.post(
+        "https://api.twitter.com/2/tweets",
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         },
-        json={"text": text[:280]},                 # hard cut at 280 chars
+        json={"text": text[:280]},
         timeout=30,
     )
     resp.raise_for_status()
-    return resp.json()                             # contains tweet ID & text
+    return resp.json()
 
-# run a quick self-test when you execute the file directly
+# optional quick test
 if __name__ == "__main__":
-    print(tweet("TEST tweet via OAuth2 PKCE 🚀  (safe to delete)"))
+    print(tweet("TEST after refresh helper ✅"))
