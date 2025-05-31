@@ -1,0 +1,28 @@
+name: EquityToken Pulse Daily
+
+on:
+  schedule:
+    - cron:  '0 16 * * *'      # 09:00 PT daily
+  workflow_dispatch:
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: run bot
+        env:
+          DUNE_API_KEY:      ${{ secrets.DUNE_API_KEY }}
+          DUNE_QUERY_ID:     ${{ secrets.DUNE_QUERY_ID }}
+          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+          TW_CLIENT_ID:      ${{ secrets.TW_CLIENT_ID }}
+          TW_CLIENT_SECRET:  ${{ secrets.TW_CLIENT_SECRET }}
+          TW_REDIRECT_URI:   ${{ secrets.TW_REDIRECT_URI }}
+          TW_ACCESS_TOKEN:   ${{ secrets.TW_ACCESS_TOKEN }}
+          TW_REFRESH_TOKEN:  ${{ secrets.TW_REFRESH_TOKEN }}
+        run: |
+          python pulse_runner.py
