@@ -17,7 +17,14 @@ def fresh_access_token() -> str:
             "refresh_token": os.environ["TW_REFRESH_TOKEN"],
         },
         timeout=30,
-    )
+    )r = requests.post(...)
+
+    # 🔎 print Twitter's own error JSON / text
+    if r.status_code != 200:
+        print("TWITTER REFRESH ERROR →", r.status_code, r.text)
+
+    r.raise_for_status()
+
     r.raise_for_status()
     j = r.json()
 
