@@ -1,9 +1,8 @@
 name: EquityToken Pulse
 
 permissions:
-  contents: read
-  actions: read
-  secrets: write
+contents: read
+secrets: write
 
 on:
   schedule:
