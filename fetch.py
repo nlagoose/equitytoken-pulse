@@ -11,33 +11,34 @@ HEAD  = {"X-DUNE-API-KEY": os.environ["DUNE_API_KEY"]}
 
 def fetch_rows():
     """
-    Call Dune’s “query results” endpoint and return the list of rows.
-    Adjust the JSON‐path below if your Dune response uses different field names.
+    Call Dune’s /query/{QID}/results endpoint and return the list of rows.
+    The rows are under resp["result"]["rows"] based on your sample output.
     """
     url = f"{API}query/{QID}/results"
     r = requests.get(url, headers=HEAD, timeout=30)
     r.raise_for_status()
     resp = r.json()
 
-    # ── Depending on your Dune API version, the rows may live under:
-    # resp["data"]["get_query_result"]["rows"]
-    # or resp["data"]["get_query_data"]["result"]["rows"]
-    #
-    # Inspect your actual Dune response if this key is wrong. For many setups, it’s:
-    #
-    #    resp["data"]["get_query_result"]["rows"]
-    #
-    try:
+    # ── Your fetch output shows "result" at top level:
+    if "result" in resp and "rows" in resp["result"]:
+        return resp["result"]["rows"]
+
+    # ── Fallback to old shapes if needed later:
+    if "data" in resp and "get_query_result" in resp["data"]:
         return resp["data"]["get_query_result"]["rows"]
-    except KeyError:
-        # fallback if the structure is slightly different
+    if "data" in resp and "get_query_data" in resp["data"]:
         return resp["data"]["get_query_data"]["result"]["rows"]
+
+    # ── If nothing matches, print payload and abort
+    print("\n❌ Unexpected Dune response shape:\n")
+    print(json.dumps(resp, indent=2))
+    raise RuntimeError("Cannot find row data in Dune response—see above payload")
 
 
 def detect(rows):
     """
-    Given a list of rows (each row is a dict with keys including 'pct_change'),
-    return a list of simplified event dicts.
+    Given a list of rows, return simplified event dicts with keys:
+      - type, token, pct, usd_24h
     """
     events = []
     for r in rows:
@@ -52,7 +53,7 @@ def detect(rows):
 
 
 if __name__ == "__main__":
-    # Quick local sanity check
+    # Local sanity-check
     rows = fetch_rows()
     events = detect(rows)
     print(json.dumps(events, indent=2))
