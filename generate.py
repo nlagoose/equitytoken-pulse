@@ -5,6 +5,9 @@ import json
 import openai
 import requests
 
+# Ensure your OPENAI_API_KEY is set in the environment
+openai.api_key = os.environ["OPENAI_API_KEY"]
+
 PROMPT = """
 You are a cheeky crypto marketer. Given this event JSON:
 {event_json}
@@ -20,8 +23,8 @@ Example output:
 """
 
 def craft(event: dict) -> dict:
-    # 1) Ask ChatGPT for both tweet text and an image prompt
-    chat_resp = openai.ChatCompletion.create(
+    # 1) Ask ChatGPT (new v1 API) for both tweet text and an image_prompt
+    chat_resp = openai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are a crypto marketer."},
@@ -29,27 +32,27 @@ def craft(event: dict) -> dict:
         ],
         temperature=0.7,
     )
-    result = json.loads(chat_resp.choices[0].message.content)
+    choice = chat_resp.choices[0].message.content
+    result = json.loads(choice)
     tweet_text = result["tweet"]
     img_prompt = result["image_prompt"]
 
-    # 2) Generate a DALL·E image from the image_prompt
-    img_resp = openai.Image.create(
+    # 2) Generate a DALL·E image via the new v1 images interface
+    img_resp = openai.images.create(
         prompt=img_prompt,
         n=1,
         size="1024x1024"
     )
-    # Grab the URL of the generated image
+    # The returned URL lives under data[0].url
     img_url = img_resp["data"][0]["url"]
 
-    # 3) Download the image to a local file
-    #    We’ll name it based on the token so multiple runs don’t clash.
+    # 3) Download the image locally
     filename = f"image_{event['token']}.png"
     img_data = requests.get(img_url).content
     with open(filename, "wb") as f:
         f.write(img_data)
 
-    # 4) Return both the tweet text and the local image filename
+    # 4) Return tweet + the local filename
     return {
         "tweet": tweet_text,
         "image_file": filename
