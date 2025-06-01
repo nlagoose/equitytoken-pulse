@@ -1,8 +1,5 @@
 name: EquityToken Pulse
 
-permissions:
-  secrets: write
-
 on:
   schedule:
     - cron: '0 */6 * * *'
@@ -41,7 +38,7 @@ jobs:
 
       - name: Persist the new refresh token back to GitHub Secrets
         env:
-          GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY:  ${{ github.repository }}
+          GH_PAT:            ${{ secrets.GH_PAT }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           python update_secret.py
