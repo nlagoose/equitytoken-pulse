@@ -5,7 +5,7 @@ import json
 import openai
 import requests
 
-# Make sure your OPENAI_API_KEY is set in environment
+# Ensure your OPENAI_API_KEY is set in the environment
 openai.api_key = os.environ["OPENAI_API_KEY"]
 
 PROMPT = """
@@ -32,13 +32,12 @@ def craft(event: dict) -> dict:
         ],
         temperature=0.7,
     )
-    # At this point chat_resp is defined—no NameError
-    choice = chat_resp.choices[0].message.content
-    result = json.loads(choice)
+    choice     = chat_resp.choices[0].message.content
+    result     = json.loads(choice)
     tweet_text = result["tweet"]
     img_prompt = result["image_prompt"].strip()
 
-    # ── DEBUG: print exactly what we're sending to DALL·E
+    # ── DEBUG: show exactly what we're sending to DALL·E
     print("\n🔍 DALL·E prompt:", repr(img_prompt), "\n")
 
     # 2) Try image generation; if it fails, fall back to text-only
@@ -52,18 +51,19 @@ def craft(event: dict) -> dict:
             )
             img_url = img_resp["data"][0]["url"]
 
-            # Download the image locally
+            # 3) Download that image locally
             filename = f"image_{event['token']}.png"
             img_data = requests.get(img_url).content
             with open(filename, "wb") as f:
                 f.write(img_data)
             image_file = filename
 
-        except openai.error.OpenAIError as e:
+        except Exception as e:
+            # Catch any exception (including OpenAI bad‐request errors)
             print("❌ DALL·E generation failed:", e)
-            # We’ll just proceed with a text-only tweet
+            # Proceed without an image (image_file stays None)
 
     return {
-        "tweet": tweet_text,
+        "tweet":      tweet_text,
         "image_file": image_file
     }
