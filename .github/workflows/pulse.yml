@@ -1,23 +1,34 @@
 name: EquityToken Pulse
 
+permissions:
+  contents: read
+  actions: read
+  secrets: write
+
 on:
   schedule:
-    - cron: '0 */6 * * *'      # runs every 6 hours at minute 0 UTC
-  workflow_dispatch:          # enables the “Run workflow” button
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   pulse:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Check out our code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pynacl
 
-      - name: run bot
+      - name: Run bot (fetch → generate → tweet → write new refresh token)
         env:
           DUNE_API_KEY:      ${{ secrets.DUNE_API_KEY }}
           DUNE_QUERY_ID:     ${{ secrets.DUNE_QUERY_ID }}
@@ -29,3 +40,10 @@ jobs:
           TW_REFRESH_TOKEN:  ${{ secrets.TW_REFRESH_TOKEN }}
         run: |
           python pulse_runner.py
+
+      - name: Persist the new refresh token back to GitHub Secrets
+        env:
+          GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY:  ${{ github.repository }}
+        run: |
+          python update_secret.py

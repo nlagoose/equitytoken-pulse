@@ -22,7 +22,17 @@ def fresh_access_token() -> str:
     r.raise_for_status()
     data = r.json()
 
-    os.environ["TW_ACCESS_TOKEN"]  = data["access_token"]
-    os.environ["TW_REFRESH_TOKEN"] = data["refresh_token"]
+    # Extract the new tokens
+    new_access  = data["access_token"]
+    new_refresh = data["refresh_token"]
+
+    # Update in-memory for this run
+    os.environ["TW_ACCESS_TOKEN"]  = new_access
+    os.environ["TW_REFRESH_TOKEN"] = new_refresh
     os.environ["TW_AT_ISSUED"]     = str(int(time.time()))
-    return data["access_token"]
+
+    # ── WRITE the new refresh token to a file for later steps
+    with open("new_refresh_token.txt", "w") as f:
+        f.write(new_refresh)
+
+    return new_access
