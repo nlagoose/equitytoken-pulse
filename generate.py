@@ -5,7 +5,7 @@ import json
 import openai
 import requests
 
-# Make sure your OPENAI_API_KEY is set in the environment
+# Ensure your OPENAI_API_KEY is set in the environment
 openai.api_key = os.environ["OPENAI_API_KEY"]
 
 PROMPT = """
@@ -23,7 +23,7 @@ Example output:
 """
 
 def craft(event: dict) -> dict:
-    # 1) Ask ChatGPT for both tweet text and an image_prompt
+    # 1) Ask ChatGPT (new v1 API) for both tweet text and an image_prompt
     chat_resp = openai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
@@ -37,8 +37,8 @@ def craft(event: dict) -> dict:
     tweet_text = result["tweet"]
     img_prompt = result["image_prompt"]
 
-    # 2) Generate a DALL·E image via the v1 API: use openai.Image.create(...)
-    img_resp = openai.Image.create(
+    # 2) Generate a DALL·E image via the new v1 images interface
+    img_resp = openai.images.generate(
         prompt=img_prompt,
         n=1,
         size="1024x1024"
@@ -51,7 +51,7 @@ def craft(event: dict) -> dict:
     with open(filename, "wb") as f:
         f.write(img_data)
 
-    # 4) Return both the tweet text and the local filename
+    # 4) Return tweet + the local filename
     return {
         "tweet": tweet_text,
         "image_file": filename
