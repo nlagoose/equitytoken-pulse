@@ -2,11 +2,11 @@
 
 import time
 import requests
-from fetch import fetch_rows         # your Dune data helper
-from generate import craft           # generates GPT copy
-from post_to_twitter import tweet    # posts to Twitter (auto-refreshing)
+from fetch import fetch_rows         # fetch_rows() unchanged
+from generate import craft           # now returns {"tweet", "image_file"}
+from post_to_twitter import tweet
 
-MIN_MOVE = 2.5   # only tweet if abs(pct_change) ≥ 2.5%
+MIN_MOVE = 2.5   # threshold for percent-change
 
 def run_once():
     # 1. Fetch on-chain data
@@ -18,19 +18,19 @@ def run_once():
         print("No significant moves to tweet.")
         return
 
-    # 3. Pick the single top event by absolute percent change
+    # 3. Pick the top mover
     top = max(events, key=lambda r: abs(r["pct_change"]))
 
-    # 4. Generate the tweet copy with GPT
-    copy = craft(top)   # returns a dict with "tweet" (≤280 chars)
+    # 4. Generate text + image via GPT + DALL·E
+    copy = craft(top)   # now has {"tweet": "...", "image_file": "image_<token>.png"}
 
-    # 5. Attempt to post the one tweet, catching 429 if rate-limited
+    # 5. Post the tweet with image
     try:
-        res = tweet(copy["tweet"])
+        res = tweet(copy["tweet"], copy["image_file"])
         print(f"✅ Posted: {res['data']['id']} → {copy['tweet']}")
     except requests.exceptions.HTTPError as exc:
         if exc.response.status_code == 429:
-            print("⚠️ Hit Twitter rate limit (429). Skipping tweet.")
+            print("⚠️ Hit Twitter rate limit (429). Skipping.")
         else:
             raise
 
