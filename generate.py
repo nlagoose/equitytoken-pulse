@@ -5,7 +5,7 @@ import json
 import openai
 import requests
 
-# Ensure your OPENAI_API_KEY is set in the environment
+# Make sure your OPENAI_API_KEY is set in the environment
 openai.api_key = os.environ["OPENAI_API_KEY"]
 
 PROMPT = """
@@ -18,12 +18,12 @@ Return a JSON object with two keys:
 Example output:
 {{
   "tweet": "🚨 ETH volume just spiked 42%! Time to watch the flames. 🔥 #Crypto",
-  "image_prompt": "A dramatic chart showing Ethereum volume surging, in stylized crypto‐art colors"
+  "image_prompt": "A dramatic chart showing Ethereum volume surging, in stylized crypto-art colors"
 }}
 """
 
 def craft(event: dict) -> dict:
-    # 1) Ask ChatGPT (new v1 API) for both tweet text and an image_prompt
+    # 1) Ask ChatGPT for both tweet text and an image_prompt
     chat_resp = openai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
@@ -37,22 +37,21 @@ def craft(event: dict) -> dict:
     tweet_text = result["tweet"]
     img_prompt = result["image_prompt"]
 
-    # 2) Generate a DALL·E image via the new v1 images interface
-    img_resp = openai.images.create(
+    # 2) Generate a DALL·E image via the v1 API: use openai.Image.create(...)
+    img_resp = openai.Image.create(
         prompt=img_prompt,
         n=1,
         size="1024x1024"
     )
-    # The returned URL lives under data[0].url
     img_url = img_resp["data"][0]["url"]
 
-    # 3) Download the image locally
+    # 3) Download that image locally
     filename = f"image_{event['token']}.png"
     img_data = requests.get(img_url).content
     with open(filename, "wb") as f:
         f.write(img_data)
 
-    # 4) Return tweet + the local filename
+    # 4) Return both the tweet text and the local filename
     return {
         "tweet": tweet_text,
         "image_file": filename
