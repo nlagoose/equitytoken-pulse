@@ -1,49 +1,56 @@
 # post_to_twitter.py
 
 import os
-import requests
-from twitter_refresh import fresh_access_token
+from requests_oauthlib import OAuth1Session
 
-def upload_media(filename: str) -> str:
-    token = fresh_access_token()
-    headers = {"Authorization": f"Bearer {token}"}
-    print("[DEBUG] upload_media: attempting to open file:", filename)
-    if not os.path.exists(filename):
-        print(f"[ERROR] upload_media: file does NOT exist → {filename}")
-    else:
-        print(f"[DEBUG] upload_media: file exists, size={os.path.getsize(filename)} bytes")
+# Read your four OAuth 1.0a secrets from environment
+OAUTH1_CONSUMER_KEY        = os.environ["OAUTH1_CONSUMER_KEY"]
+OAUTH1_CONSUMER_SECRET     = os.environ["OAUTH1_CONSUMER_SECRET"]
+OAUTH1_ACCESS_TOKEN        = os.environ["OAUTH1_ACCESS_TOKEN"]
+OAUTH1_ACCESS_TOKEN_SECRET = os.environ["OAUTH1_ACCESS_TOKEN_SECRET"]
 
-    files = {"media": open(filename, "rb")}
-    r = requests.post(
-        "https://upload.twitter.com/1.1/media/upload.json",
-        headers=headers,
-        files=files,
-        timeout=30
+def upload_media(image_file: str) -> str:
+    """
+    Uploads a local image to Twitter v1.1 media endpoint using OAuth1.0a user context.
+    Returns the "media_id_string" to attach to a tweet.
+    """
+    oauth = OAuth1Session(
+        client_key=OAUTH1_CONSUMER_KEY,
+        client_secret=OAUTH1_CONSUMER_SECRET,
+        resource_owner_key=OAUTH1_ACCESS_TOKEN,
+        resource_owner_secret=OAUTH1_ACCESS_TOKEN_SECRET,
     )
-    print("[DEBUG] upload_media: HTTP status", r.status_code)
-    r.raise_for_status()
-    media_id = r.json()["media_id_string"]
-    print("[DEBUG] upload_media: got media_id_string:", media_id)
-    return media_id
+
+    with open(image_file, "rb") as f:
+        files = {"media": f}
+        resp = oauth.post(
+            "https://upload.twitter.com/1.1/media/upload.json",
+            files=files
+        )
+
+    resp.raise_for_status()
+    return resp.json()["media_id_string"]
 
 def tweet(text: str, image_file: str = None) -> dict:
-    token = fresh_access_token()
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
+    """
+    Posts a tweet (with optional media) via Twitter v1.1 statuses/update.
+    Both upload_media() and status update use OAuth1.0a.
+    """
+    oauth = OAuth1Session(
+        client_key=OAUTH1_CONSUMER_KEY,
+        client_secret=OAUTH1_CONSUMER_SECRET,
+        resource_owner_key=OAUTH1_ACCESS_TOKEN,
+        resource_owner_secret=OAUTH1_ACCESS_TOKEN_SECRET,
+    )
 
-    print("[DEBUG] tweet(): text length:", len(text))
-    print("[DEBUG] tweet(): image_file passed in:", image_file)
-
-    data = {"text": text}
+    payload = {"status": text}
     if image_file:
         media_id = upload_media(image_file)
-        data["media"] = {"media_ids": [media_id]}
+        payload["media_ids"] = media_id
 
-    print("[DEBUG] tweet(): final payload to /2/tweets:", data)
-    r = requests.post("https://api.twitter.com/2/tweets", json=data, headers=headers, timeout=30)
-    print("[DEBUG] tweet(): HTTP status", r.status_code)
-    r.raise_for_status()
-    print("[DEBUG] tweet(): response JSON keys:", r.json().keys())
-    return r.json()
+    resp = oauth.post(
+        "https://api.twitter.com/1.1/statuses/update.json",
+        data=payload
+    )
+    resp.raise_for_status()
+    return resp.json()

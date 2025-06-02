@@ -2,3 +2,4 @@ openai
 requests
 matplotlib
 pynacl
+requests_oauthlib
