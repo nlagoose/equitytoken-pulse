@@ -5,11 +5,14 @@ import requests
 from twitter_refresh import fresh_access_token
 
 def upload_media(filename: str) -> str:
-    """
-    Upload a local image file to Twitter v1.1 API and return media_id_string.
-    """
     token = fresh_access_token()
     headers = {"Authorization": f"Bearer {token}"}
+    print("[DEBUG] upload_media: attempting to open file:", filename)
+    if not os.path.exists(filename):
+        print(f"[ERROR] upload_media: file does NOT exist → {filename}")
+    else:
+        print(f"[DEBUG] upload_media: file exists, size={os.path.getsize(filename)} bytes")
+
     files = {"media": open(filename, "rb")}
     r = requests.post(
         "https://upload.twitter.com/1.1/media/upload.json",
@@ -17,26 +20,30 @@ def upload_media(filename: str) -> str:
         files=files,
         timeout=30
     )
+    print("[DEBUG] upload_media: HTTP status", r.status_code)
     r.raise_for_status()
-    return r.json()["media_id_string"]
+    media_id = r.json()["media_id_string"]
+    print("[DEBUG] upload_media: got media_id_string:", media_id)
+    return media_id
 
 def tweet(text: str, image_file: str = None) -> dict:
-    """
-    Post a tweet with optional image. Returns the JSON response from /2/tweets.
-    """
     token = fresh_access_token()
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
 
+    print("[DEBUG] tweet(): text length:", len(text))
+    print("[DEBUG] tweet(): image_file passed in:", image_file)
+
     data = {"text": text}
     if image_file:
-        # 1) Upload the image to get a media_id
         media_id = upload_media(image_file)
-        # 2) Attach it to the tweet payload
         data["media"] = {"media_ids": [media_id]}
 
+    print("[DEBUG] tweet(): final payload to /2/tweets:", data)
     r = requests.post("https://api.twitter.com/2/tweets", json=data, headers=headers, timeout=30)
+    print("[DEBUG] tweet(): HTTP status", r.status_code)
     r.raise_for_status()
+    print("[DEBUG] tweet(): response JSON keys:", r.json().keys())
     return r.json()

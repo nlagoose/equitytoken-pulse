@@ -5,7 +5,6 @@ import json
 import openai
 import requests
 import matplotlib.pyplot as plt
-from io import BytesIO
 
 # Ensure your OPENAI_API_KEY is set in the environment
 openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -67,7 +66,7 @@ def craft(event: dict) -> dict:
             )
             img_url = img_resp["data"][0]["url"]
 
-            filename = f"image_{event['symbol']}.png"
+            filename = f"image_{event['token']}.png"
             img_data = requests.get(img_url).content
             with open(filename, "wb") as f:
                 f.write(img_data)
@@ -90,9 +89,9 @@ def craft(event: dict) -> dict:
 def _make_bar_chart(event: dict) -> str:
     """
     Draw a two-bar chart comparing prev_24h vs rolling_24h (both in USD millions).
-    Save it as chart_<symbol>.png and return that filename.
+    Save it as chart_<token>.png and return that filename.
     """
-    token = event["symbol"]
+    token = event["token"]
     prev  = event["prev_24h"]    / 1e6  # millions
     curr  = event["rolling_24h"] / 1e6  # millions
 
