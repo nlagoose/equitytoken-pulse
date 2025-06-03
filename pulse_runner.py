@@ -4,7 +4,7 @@ import os
 import json
 from fetch import detect, fetch_rows
 from generate import craft
-from post_to_twitter import tweet
+from post_to_twitter_v2 import tweet_v2 as tweet
 
 def run_once():
     # 1) Fetch raw rows from Dune
@@ -28,7 +28,7 @@ def run_once():
         text       = copy["tweet"]
         image_file = copy["image_file"]
 
-        # 5) Post the tweet (text + optional image)
+        # 5) Post the tweet (text + optional image) via v2 endpoints
         try:
             resp = tweet(text, image_file)
             tweet_id = resp["data"]["id"]
